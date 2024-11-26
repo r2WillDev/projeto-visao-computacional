@@ -78,6 +78,33 @@ with tab1:
             associate_gesture_with_url(gesture_name, url)
         else:
             st.write("Por favor, insira uma URL válida.")
+with tab2:
+    st.header("Associações Atuais")
+    if gesture_url_mapping:
+        # Cabeçalho da tabela
+        col1, col2, col3 = st.columns([2, 3, 1])
+        col1.write("**Gesto**")
+        col2.write("**URL Associada**")
+        col3.write("**Ações**")
+
+        gestures = list(gesture_url_mapping.keys())
+        
+        for i, gesture in enumerate(gestures):
+            url = gesture_url_mapping[gesture]
+            col1, col2, col3 = st.columns([2, 3, 1])
+            col1.write(gesture)
+            col2.write(url)
+            if col3.button("Excluir", key=f"delete_button_{i}"):
+                remove_gesture_association(gesture)
+                update_needed = True  
+
+        if update_needed:
+            if st.button("Atualizar lista de associações"):
+                update_needed = False
+                st.experimental_rerun()  
+
+    else:
+        st.write("Nenhuma associação encontrada.")
 ```
 - Usamos o streamlit para criar a interface gráfica do projeto. O código inclui duas abas: uma para associar gestos a URLs e outra para visualizar/excluir associações existentes.
   

@@ -5,10 +5,16 @@
 import cv2
 import mediapipe as mp
 import webbrowser
+import streamlit as st
+import json
+import os
 ```
 - `cv2`: Biblioteca OpenCV usada para capturar e manipular o vídeo da câmera.
 - `mediapipe`: Biblioteca de visão computacional da Google que facilita a detecção de mãos, rostos, etc.
 - `webbrowser`: Módulo que permite abrir URLs no navegador da web.
+- `streamlit`: Biblioteca usada para criar interfaces web interativas de maneira simples e rápida. Ideal para protótipos de dashboards e visualizações de dados.
+- `json`: Módulo da biblioteca padrão do Python para manipulação de dados em formato JSON (JavaScript Object Notation). Permite converter entre strings JSON e objetos Python, como dicionários e listas.
+- `os`: Módulo da biblioteca padrão do Python que oferece funcionalidades para interagir com o sistema operacional, como manipulação de arquivos e diretórios, obtenção de variáveis de ambiente e execução de comandos do sistema.
 
 ## 2. Inicialização de Detecção de Mãos do MediaPipe
 ```python

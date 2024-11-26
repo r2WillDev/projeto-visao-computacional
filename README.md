@@ -26,77 +26,115 @@ mp_drawing = mp.solutions.drawing_utils
 - `hands`: Cria um objeto Hands para detectar até 1 mão (max_num_hands=1)
 - `mp_drawing`: Utilitário para desenhar as conexões das mãos na imagem
 
-## 3. Função para Verificar se a Mão está aberta
+## 3. Carregar e Salvar Associações de Gestos com URLs
 ```python
-def is_hand_open(hand_landmarks):
-    finger_tips = [4, 8, 12, 16, 20]  
-    finger_joints = [3, 6, 10, 14, 18]
+gesture_url_file = "gesture_url_mapping.json"
 
-    open_fingers = 0
-    for tip, joint in zip(finger_tips[1:], finger_joints[1:]): 
-        if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[joint].y:
-            open_fingers += 1
+def save_gesture_url_mapping():
+    with open(gesture_url_file, "w") as f:
+        json.dump(gesture_url_mapping, f)
 
-    return open_fingers == 4  
-```
-- Esta função verifica se os dedos, do indicador ao mindinho, estão estendidos.
-- Para cada dedo, verifica se a ponta (tip) está acima da articulação média (joint), usando as coordenadas `y` (posição vertical).
-- Se os quatro dedos (exceto o polegar) estiverem estendidos, considera que a mão está aberta.
+def load_gesture_url_mapping():
+    if os.path.exists(gesture_url_file):
+        with open(gesture_url_file, "r") as f:
+            return json.load(f)
+    return {}
 
-## 4. Função para Verificar se a Mão Está Fazendo o Gesto de "L"
-```python
-def is_hand_L_gesture(hand_landmarks):
-    thumb_tip = hand_landmarks.landmark[4]
-    index_tip = hand_landmarks.landmark[8]
-    middle_tip = hand_landmarks.landmark[12]
-    ring_tip = hand_landmarks.landmark[16]
-    pinky_tip = hand_landmarks.landmark[20]
-
-    thumb_joint = hand_landmarks.landmark[3]
-    index_joint = hand_landmarks.landmark[6]
-    middle_joint = hand_landmarks.landmark[10]
-    ring_joint = hand_landmarks.landmark[14]
-    pinky_joint = hand_landmarks.landmark[18]
-
-    thumb_extended = thumb_tip.x < thumb_joint.x
-    index_extended = index_tip.y < index_joint.y
-
-    middle_bent = middle_tip.y > middle_joint.y
-    ring_bent = ring_tip.y > ring_joint.y
-    pinky_bent = pinky_tip.y > pinky_joint.y
-
-    return thumb_extended and index_extended and middle_bent and ring_bent and pinky_bent
+gesture_url_mapping = load_gesture_url_mapping()
 
 ```
-- Esta função detecta o gesto de "L".
-  - Verifica se o **polegar** está estendido para fora (baseado na coordenada `x`).
-  - Verifica se o **indicador** está estendido (baseado na coordenada `y`).
-  - Verifica se os outros três dedos (**médio, anelar e mindinho**) estão dobrados (com as pontas abaixo das articulações).
+- Esta parte do código permite associar gestos com URLs, como desejado no projeto.
 
-
-
-## 5. Configuração da Captura de Vídeo
+## 4.  Funções para Associar Gestos a URLs
 ```python
-cap = cv2.VideoCapture(0)
+def associate_gesture_with_url(gesture_name, url):
+    gesture_url_mapping[gesture_name] = url
+    save_gesture_url_mapping()  # Salvar as associações atualizadas
+    st.write(f"Gesto '{gesture_name}' associado com a URL: {url}")
+
+def remove_gesture_association(gesture_name):
+    if gesture_name in gesture_url_mapping:
+        del gesture_url_mapping[gesture_name]
+        save_gesture_url_mapping()
+        st.write(f"Gesto '{gesture_name}' foi removido.")
+
+
 ```
-- Inicia a captura de vídeo da câmera. O índice `0` geralmente representa a câmera padrão do sistema.
+- Essas funções permitem associar ou remover gestos com URLs através da interface do usuário.
+
+## 5. Interface de Usuário (Streamlit)
+```python
+st.title("Associador de Gestos com URLs")
+tab1, tab2 = st.tabs(["Associar Gestos", "Visualizar/Excluir Gestos"])
+
+# Aba 1: Associação de gestos com URLs
+with tab1:
+    st.header("Associar um Gesto a uma URL")
+    gesture_name = st.selectbox("Escolha um gesto para associar", ["Open Hand", "L Gesture", "Three Gesture", "V Gesture", "OK Gesture", "Pinch Gesture"], key="gesture_selectbox")
+    url = st.text_input("Digite a URL para o gesto selecionado", key="url_input")
+
+    if st.button("Associar URL ao Gesto", key="associate_button"):
+        if url:
+            associate_gesture_with_url(gesture_name, url)
+        else:
+            st.write("Por favor, insira uma URL válida.")
+```
+- Usamos o streamlit para criar a interface gráfica do projeto. O código inclui duas abas: uma para associar gestos a URLs e outra para visualizar/excluir associações existentes.
   
-## 6. Variáveis para Contagem e Controle de Gestos
+## 6. Detectar Gestos
 ```python
+# Funções para detectar os gestos específicos
+def is_hand_open(hand_landmarks):
+    # Função para verificar se a mão está aberta
+    ...
+
+def is_hand_L_gesture(hand_landmarks):
+    # Função para verificar se a mão faz um gesto "L"
+    ...
+
+def is_pinch_gesture(hand_landmarks):
+    # Função para verificar se a mão faz um gesto de "Pinça"
+    ...
+
+def is_ok_gesture(hand_landmarks):
+    # Função para verificar se a mão faz um gesto "OK"
+    ...
+
+def is_victory_gesture(hand_landmarks):
+    # Função para verificar se a mão faz um gesto de "V de Vitória"
+    ...
+
+def is_three_gesture(hand_landmarks):
+    # Função para verificar se a mão faz um gesto de "Contagem de 3"
+    ...
+
+```
+- Aqui você implementa a lógica de detecção de gestos com base nos marcos das mãos.
+  
+## 7. Processamento de Vídeo e Execução de Ações
+
+```python
+
+cap = cv2.VideoCapture(0)
+
 open_hand_frames = 0
 L_gesture_frames = 0
+pinch_gesture_frames = 0
+ok_gesture_frames = 0
+victory_gesture_frames = 0
+three_gesture_frames = 0
 required_gesture_frames = 30
+
 
 open_hand_detected = False
 L_gesture_detected = False
-```
-- `open_hand_frames` e `L_gesture_frames`: Contadores de quantos frames consecutivos cada gesto foi detectado.
-- `required_gesture_frames`: Quantos frames consecutivos o gesto precisa durar para ser reconhecido (neste caso, 30).
-- `open_hand_detected` e `L_gesture_detected`: Variáveis booleanas para garantir que o gesto não seja processado repetidamente.
-  
-## 7. Laço Principal para Processamento de Vídeo
+pinch_gesture_detected = False
+ok_gesture_detected = False
+victory_gesture_detected = False
+three_gesture_detected = False
 
-```python
+st.write("Abrindo a câmera para detecção de gestos. Aperte 'q' para sair.")
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -104,69 +142,96 @@ while True:
 
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
-```
-- Dentro do laço, captura o vídeo quadro a quadro.
-- Converte o quadro para o formato RGB, necessário para o MediaPipe.
-- Usa o `hands.process(frame_rgb)` para processar o quadro e identificar mãos na imagem.
 
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-## 8. Desenho das Mãos Detectadas e Detecção de Gestos
-```python
-if results.multi_hand_landmarks:
-    for hand_landmarks in results.multi_hand_landmarks:
-        mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-```
-- Se o MediaPipe detectar mãos, desenha os pontos e conexões das mãos no quadro usando `mp_drawing.draw_landmarks`.
-```python
-if is_hand_open(hand_landmarks):
-    open_hand_frames += 1
-    L_gesture_frames = 0
-else:
-    open_hand_frames = 0
-    open_hand_detected = False
-```
-- Se a mão estiver aberta, aumenta o contador de frames consecutivos para o gesto de mão aberta e reseta o contador do gesto de "L". Caso contrário, reseta o contador de mão aberta.
+            # Detecção dos gestos
+            if is_hand_open(hand_landmarks):
+                open_hand_frames += 1
+            else:
+                open_hand_frames = 0
+                open_hand_detected = False
 
-```python
-if is_hand_L_gesture(hand_landmarks):
-    L_gesture_frames += 1
-    open_hand_frames = 0
-else:
-    L_gesture_frames = 0
-    L_gesture_detected = False
-```
-- Se o gesto de "L" for detectado, aumenta o contador de frames consecutivos e reseta o contador de mão aberta. Caso contrário, reseta o contador de "L".
-## 9. Ação com Base nos Gestos Detectados
-```python
-if open_hand_frames >= required_gesture_frames and not open_hand_detected:
-    webbrowser.open('https://www.google.com')
-    open_hand_detected = True
-```
-- Se o gesto de mão aberta for detectado por 30 frames consecutivos e ainda não foi processado, abre o navegador na página do Google e marca que o gesto foi detectado.
-```python
-if L_gesture_frames >= required_gesture_frames and not L_gesture_detected:
-    webbrowser.open('https://www.linkedin.com/feed/')
-    L_gesture_detected = True
-```
-- Se o gesto de "L" for detectado por 30 frames consecutivos e ainda não foi processado, abre o navegador na página do LinkedIn.
+            if is_hand_L_gesture(hand_landmarks):
+                L_gesture_frames += 1
+            else:
+                L_gesture_frames = 0
+                L_gesture_detected = False
 
-## 10. Mostrar a Imagem na Tela
-```python
-cv2.imshow('Gestos com a Câmera', frame)
+            if is_pinch_gesture(hand_landmarks):
+                pinch_gesture_frames += 1
+            else:
+                pinch_gesture_frames = 0
+                pinch_gesture_detected = False
 
-if cv2.waitKey(1) & 0xFF == ord('q'):
-    break
-```
-- Exibe a imagem com as mãos detectadas em uma janela.
-- A execução do laço continua até que a tecla 'q' seja pressionada.
+            if is_ok_gesture(hand_landmarks):
+                ok_gesture_frames += 1
+            else:
+                ok_gesture_frames = 0
+                ok_gesture_detected = False
 
-## 11. Liberação de Recursos
+            if is_victory_gesture(hand_landmarks):
+                victory_gesture_frames += 1
+            else:
+                victory_gesture_frames = 0
+                victory_gesture_detected = False
 
-```python
+            if is_three_gesture(hand_landmarks):
+                three_gesture_frames += 1
+            else:
+                three_gesture_frames = 0
+                three_gesture_detected = False
+
+            # Abrir URLs para gestos detectados
+            if open_hand_frames >= required_gesture_frames and not open_hand_detected:
+                url = gesture_url_mapping.get("Open Hand")
+                if url:
+                    webbrowser.open(url)
+                    open_hand_detected = True
+
+            if L_gesture_frames >= required_gesture_frames and not L_gesture_detected:
+                url = gesture_url_mapping.get("L Gesture")
+                if url:
+                    webbrowser.open(url)
+                    L_gesture_detected = True
+
+            if pinch_gesture_frames >= required_gesture_frames and not pinch_gesture_detected:
+                url = gesture_url_mapping.get("Pinch Gesture")
+                if url:
+                    webbrowser.open(url)
+                    pinch_gesture_detected = True
+
+            if ok_gesture_frames >= required_gesture_frames and not ok_gesture_detected:
+                url = gesture_url_mapping.get("OK Gesture")
+                if url:
+                    webbrowser.open(url)
+                    ok_gesture_detected = True
+
+            if victory_gesture_frames >= required_gesture_frames and not victory_gesture_detected:
+                url = gesture_url_mapping.get("V Gesture")
+                if url:
+                    webbrowser.open(url)
+                    victory_gesture_detected = True
+
+            if three_gesture_frames >= required_gesture_frames and not three_gesture_detected:
+                url = gesture_url_mapping.get("Three Gesture")
+                if url:
+                    webbrowser.open(url)
+                    three_gesture_detected = True
+
+    cv2.imshow('Gestos com a Câmera', frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
 cap.release()
 cv2.destroyAllWindows()
+
 ```
-- Libera a câmera e fecha todas as janelas quando o laço principal termina.
+- Neste trecho, você processa o vídeo da câmera e executa ações (abrir sites) ao reconhecer gestos.
+
 
 # CASO DE USO
 
